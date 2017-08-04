@@ -10,8 +10,10 @@
 int main() {
     // CPU Prescaler
     // Set for 16 MHz clock
+    cli();
     CLKPR = 0x80;
     CLKPR = 0;
+    sei();
 
     // Configure pins:
     //          DDR=1   DDR=0
@@ -47,32 +49,29 @@ int main() {
 
         TCNT0 = 0;
         TIFR0 = 0b00000010;
-
         for (size_t i = 0; i < 32; i++) {
-            uint32_t bit = 1 << (31 - i);
+            PORTB &= ~(GBA_CLK | GBA_MOSI);
+            PORTB |= (send >> 31) ? GBA_MOSI : 0;
+            send <<= 1;
 
-            if (send & bit) {
-                PORTB = (PORTB & ~GBA_CLK) | GBA_MOSI;
-            } else {
-                PORTB = (PORTB & ~(GBA_CLK | GBA_MOSI));
-            }
-
-            while(!(TIFR0 & 0b00000010)) {}
+            while (!(TIFR0 & 0b00000010)) {}
             TIFR0 = 0b00000010;
 
             PORTB |= GBA_CLK;
-            recv |= (PINB & GBA_MISO) ? bit : 0;
+            recv <<= 1;
+            recv |= (PINB & GBA_MISO) ? 1 : 0;
 
-            while(!(TIFR0 & 0b00000010)) {}
+            while (!(TIFR0 & 0b00000010)) {}
             TIFR0 = 0b00000010;
         }
 
         sei();
 
-        usb_serial_putchar_nowait(recv);
-        usb_serial_putchar_nowait(recv >> 8);
-        usb_serial_putchar_nowait(recv >> 16);
-        usb_serial_putchar_nowait(recv >> 24);
+        usb_serial_putchar(recv);
+        usb_serial_putchar(recv >> 8);
+        usb_serial_putchar(recv >> 16);
+        usb_serial_putchar(recv >> 24);
+        usb_serial_flush_output();
     }
     return 0;
 }
