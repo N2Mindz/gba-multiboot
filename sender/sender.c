@@ -30,7 +30,7 @@ int serial_open(const char* device_name) {
 }
 
 void serial_send(int fd, uint32_t value) {
-    printf("send: %08x\n", value);
+    // printf("send: %08x\n", value);
     write(fd, &value, 4);
 }
 
@@ -47,7 +47,7 @@ uint32_t serial_recv(int fd) {
         printf("short read\n");
         exit(2);
     }
-    printf("recv: %08x\n", ret);
+    // printf("recv: %08x\n", ret);
     return ret;
 }
 
@@ -183,7 +183,6 @@ void do_multiboot(int fd, char* data, long length) {
         serial_send(fd, 0x0065);
         if (serial_recv(fd) >> 16 == 0x0075)
             break;
-        usleep(33);
     }
 
     serial_send(fd, 0x0066);
