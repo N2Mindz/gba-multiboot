@@ -1,17 +1,31 @@
 ## Project parts
 
-* `sender`: Runs on the PC, communicates with Teensy over serial, most logic here.
+* `sender`: Runs on the PC, communicates with Teensy over serial, most logic here, sends program to GBA.
 * `teensy-passthrough`: Bitbanged SPI on the Teensy.
 * `gba-hello-world`: Example hello world program.
+* `recver`: Runs on the PC, communicates with Teensy over serial, receives serial output of uploaded program.
 
 ## Dependencies
 
 * avr-gcc for Teensy passthrough
 * devkitPro for hello world program
 
+## Building
+
+    cd sender
+    ./build.sh
+    cd ../recver
+    ./build.sh
+    cd ../teensy-passthrough
+    make
+    # Upload teensy-passthrough.hex to Teensy
+    cd ../gba-hello-world
+    make
+    cd ..
+
 ## Example usage
 
-    ./sender gba-hello-world_mb.gba
+    ./sender/sender ./gba-hello-world/gba-hello-world_mb.gba && ./recver/recver
 
 ![Picture](https://pbs.twimg.com/media/DGYNCVbXcAElCzw.jpg)
 

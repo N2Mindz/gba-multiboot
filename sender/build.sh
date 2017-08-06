@@ -1,1 +1,1 @@
-cc -O2 sender.c -o sender
+cc sender.c -o sender

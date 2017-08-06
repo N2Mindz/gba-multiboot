@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <termios.h>
@@ -31,7 +32,10 @@ int serial_open(const char* device_name) {
 
 void serial_send(int fd, uint32_t value) {
     // printf("send: %08x\n", value);
-    write(fd, &value, 4);
+    uint8_t send[5];
+    send[0] = 1;
+    memcpy(&send[1], &value, 4);
+    write(fd, send, 5);
 }
 
 uint32_t serial_recv(int fd) {
@@ -40,7 +44,7 @@ uint32_t serial_recv(int fd) {
         .events = POLLIN,
         .revents = 0
     };
-    poll(&pfd, 1, 100);
+    poll(&pfd, 1, 10000);
 
     uint32_t ret = 0;
     if (read(fd, &ret, 4) != 4) {
@@ -141,6 +145,9 @@ void do_multiboot(int fd, char* data, long length) {
     serial_send(fd, 0x6400 | crc_final_a);
     serial_recv(fd);
 
+    length += 0xF;
+    length &= ~0xF;
+
     serial_send(fd, (length - 0x190) / 4);
     token = serial_recv(fd);
 
@@ -165,7 +172,7 @@ void do_multiboot(int fd, char* data, long length) {
         serial_send(fd, datum);
         uint32_t check = serial_recv(fd) >> 16;
         if (check != (i & 0xFFFF)) {
-            printf("\nTransmission error at byte %zu\n", i);
+            printf("\nTransmission error at byte %zu: check == %08x\n", i, check);
             return;
         }
 
@@ -214,6 +221,8 @@ int main(int argc, char* argv[]) {
     fseek(gba_file, 0, SEEK_END);
     long gba_file_size = ftell(gba_file);
     rewind(gba_file);
+
+    printf("To send file of length %lu\n", gba_file_size);
 
     char* data = (char*)calloc(gba_file_size + 0x10, 1);
     size_t read_size = fread(data, 1, gba_file_size, gba_file);

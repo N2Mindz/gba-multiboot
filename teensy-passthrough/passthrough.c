@@ -7,6 +7,8 @@
 #define GBA_MOSI 0b00000010
 #define GBA_MISO 0b00000100
 
+#define MODE_NOWAIT 1
+
 int main() {
     // CPU Prescaler
     // Set for 16 MHz clock
@@ -35,8 +37,10 @@ int main() {
     _delay_ms(1000);
 
     for (;;) {
-        if (usb_serial_available() < 4)
+        if (usb_serial_available() < 5)
             continue;
+
+        uint8_t mode = usb_serial_getchar();
 
         uint32_t send = (uint32_t)usb_serial_getchar();
         send |= (uint32_t)usb_serial_getchar() << 8;
@@ -44,7 +48,13 @@ int main() {
         send |= (uint32_t)usb_serial_getchar() << 24;
 
         uint32_t recv = 0;
-        
+
+        // See http://www.akkit.org/info/gba_comms.html for details.
+
+        if (!(mode & MODE_NOWAIT)) {
+            while (PINB & GBA_MISO) {} // Spin until slave is ready.
+        }
+
         cli();
 
         TCNT0 = 0;
@@ -64,6 +74,8 @@ int main() {
             while (!(TIFR0 & 0b00000010)) {}
             TIFR0 = 0b00000010;
         }
+
+        PORTB |= GBA_MOSI | GBA_CLK;
 
         sei();
 
